@@ -16,8 +16,7 @@ from database import (
     increment_message,
     get_leaderboard,
     get_user_total_messages,
-    get_total_group_messages,
-    get_user_info
+    get_total_group_messages
 )
 
 from handlers.topusers import topusers, global_buttons
@@ -25,16 +24,13 @@ from handlers.mytop import mytop, mytop_buttons
 from handlers.topgroups import topgroups, topgroups_buttons
 from handlers.broadcast import broadcast
 from handlers.logger import log_start, log_bot_status
-from handlers.events import auto_event, check_event_answer
+from handlers.events import check_event_answer
 
 
 # =========================
-# LOGGING
+# LOGGING (Reduced)
 # =========================
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.WARNING)
 
 Config.validate()
 
@@ -170,10 +166,7 @@ async def send_leaderboard(update, context, mode):
         text += "No data yet.\n"
     else:
         for i, (user_id, count) in enumerate(data, start=1):
-            user_doc = get_user_info(user_id)
-            full_name = user_doc["full_name"] if user_doc and user_doc.get("full_name") else "User"
-            safe_name = html.escape(full_name)
-            name = f"<a href='tg://user?id={user_id}'>{safe_name}</a>"
+            name = f"<a href='tg://user?id={user_id}'>User</a>"
             text += f"{i}. {name} - {count:,}\n"
 
     text += f"\nTotal messages: {total_messages:,}"
@@ -189,11 +182,14 @@ async def send_leaderboard(update, context, mode):
     if update.callback_query:
         query = update.callback_query
         await query.answer()
-        await query.edit_message_text(
-            text=text,
-            parse_mode="HTML",
-            reply_markup=reply_markup
-        )
+        try:
+            await query.edit_message_text(
+                text=text,
+                parse_mode="HTML",
+                reply_markup=reply_markup
+            )
+        except:
+            pass
     else:
         await update.message.reply_text(
             text=text,
@@ -206,12 +202,13 @@ async def ranking_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
+    mode = "overall"
     if query.data == "rank_today":
-        await send_leaderboard(update, context, "today")
+        mode = "today"
     elif query.data == "rank_week":
-        await send_leaderboard(update, context, "week")
-    else:
-        await send_leaderboard(update, context, "overall")
+        mode = "week"
+
+    await send_leaderboard(update, context, mode)
 
 
 # =========================
@@ -235,8 +232,15 @@ app.add_handler(CallbackQueryHandler(global_buttons, pattern="^g_"))
 app.add_handler(CallbackQueryHandler(mytop_buttons, pattern="^my_"))
 app.add_handler(CallbackQueryHandler(topgroups_buttons, pattern="^tg_"))
 
-app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, count_messages), group=0)
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, check_event_answer), group=1)
+app.add_handler(
+    MessageHandler(filters.TEXT & ~filters.COMMAND, count_messages),
+    group=0
+)
+
+app.add_handler(
+    MessageHandler(filters.TEXT & ~filters.COMMAND, check_event_answer),
+    group=1
+)
 
 app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, log_bot_status))
 app.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, log_bot_status))
