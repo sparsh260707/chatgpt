@@ -1,6 +1,5 @@
 import logging
 import html
-import uvloop
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -30,16 +29,11 @@ from handlers.events import auto_event, check_event_answer
 
 
 # =========================
-# PERFORMANCE BOOST
-# =========================
-uvloop.install()
-
-# =========================
 # LOGGING
 # =========================
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 Config.validate()
@@ -195,9 +189,17 @@ async def send_leaderboard(update, context, mode):
     if update.callback_query:
         query = update.callback_query
         await query.answer()
-        await query.edit_message_text(text=text, parse_mode="HTML", reply_markup=reply_markup)
+        await query.edit_message_text(
+            text=text,
+            parse_mode="HTML",
+            reply_markup=reply_markup
+        )
     else:
-        await update.message.reply_text(text=text, parse_mode="HTML", reply_markup=reply_markup)
+        await update.message.reply_text(
+            text=text,
+            parse_mode="HTML",
+            reply_markup=reply_markup
+        )
 
 
 async def ranking_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
